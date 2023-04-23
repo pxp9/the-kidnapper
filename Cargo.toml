@@ -1,0 +1,25 @@
+[package]
+name = "ransomware-rs"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name = "encrypt"
+path = "src/encrypt/main.rs"
+
+[[bin]]
+name = "decrypt"
+path = "src/decrypt/main.rs"
+
+[dependencies]
+
+aes-siv = "0.7"
+walkdir = "2"
+rand = "0.8"
+typenum = "1.16"
+rsa = "0.8"
+thiserror = "1.0"
+sha2 = "0.10"
+
