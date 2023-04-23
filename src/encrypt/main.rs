@@ -10,9 +10,9 @@ use rsa::{errors::Error as RsaError, pkcs8::DecodePublicKey, Oaep, PublicKey, Rs
 
 use sha2::Sha256;
 
+use std::fs::{write, File};
 use std::io::{Error as IOError, Read};
 use std::path::Path;
-use std::fs::{File , write};
 use thiserror::Error;
 use typenum::consts::U16;
 use typenum::{UInt, UTerm, B0, B1};
@@ -41,26 +41,21 @@ fn gen_rand_nonce() -> GenericArray<u8, U16> {
     Nonce::clone_from_slice(rand_string.as_bytes()) // 128-bits; unique per message
 }
 
-fn encrypt_file(
-    path: &Path,
-    rsa_key: &RsaPublicKey,
-) -> Result<(), CipherError> {
-
+fn encrypt_file(path: &Path, rsa_key: &RsaPublicKey) -> Result<(), CipherError> {
     match File::options().write(true).read(true).open(path) {
         Ok(mut file) => {
-
             let (aes_key, cipher) = gen_aes_key_cipher();
             let nonce = gen_rand_nonce(); // 128-bits; unique per message
-        
+
             let mut rng = rand::thread_rng();
             let padding = Oaep::new::<Sha256>();
-        
+
             let aes_encrypted_key = rsa_key.encrypt(&mut rng, padding, aes_key.as_slice());
 
             if let Err(error) = aes_encrypted_key {
                 return Err(CipherError::RsaError(error));
             }
-        
+
             let aes_encrypted_key = aes_encrypted_key.unwrap();
 
             let mut buffer = Vec::<u8>::new();
@@ -73,13 +68,13 @@ fn encrypt_file(
             }
 
             let encrypted = encrypted.unwrap();
-            
-            let mut data_to_write =  vec![];
+
+            let mut data_to_write = vec![];
             data_to_write.extend_from_slice(nonce.as_slice());
             data_to_write.extend_from_slice(&encrypted);
             data_to_write.extend_from_slice(&aes_encrypted_key);
 
-            Ok(write(path , data_to_write)?)
+            Ok(write(path, data_to_write)?)
         }
         Err(error) => Err(CipherError::IOError(error)),
     }

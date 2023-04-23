@@ -345,19 +345,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ransomware-rs"
-version = "0.1.0"
-dependencies = [
- "aes-siv",
- "rand",
- "rsa",
- "sha2",
- "thiserror",
- "typenum",
- "walkdir",
-]
-
-[[package]]
 name = "rsa"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -444,6 +431,19 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "the-kidnapper"
+version = "0.1.0"
+dependencies = [
+ "aes-siv",
+ "rand",
+ "rsa",
+ "sha2",
+ "thiserror",
+ "typenum",
+ "walkdir",
 ]
 
 [[package]]

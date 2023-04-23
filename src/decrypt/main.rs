@@ -1,18 +1,18 @@
 use aes_siv::{
-    aead::{generic_array::GenericArray, KeyInit, Aead},
+    aead::{generic_array::GenericArray, Aead, KeyInit},
 
     Aes256SivAead,
+    Error as AesError, // Or `Aes128SivAead`
     Nonce,
-    Error as AesError // Or `Aes128SivAead`
 };
-use rsa::{RsaPrivateKey , Oaep, errors::Error as RsaError, pkcs8::DecodePrivateKey};
-use sha2::{Sha256, digest::InvalidLength};
-use std::io::{Read , Error as IOError, stdin , stdout , Write};
+use rsa::{errors::Error as RsaError, pkcs8::DecodePrivateKey, Oaep, RsaPrivateKey};
+use sha2::{digest::InvalidLength, Sha256};
+use std::fs::{write, File};
+use std::io::{stdin, stdout, Error as IOError, Read, Write};
 use std::path::Path;
-use std::fs::{File, write};
-use walkdir::WalkDir;
 use thiserror::Error;
 use typenum::U16;
+use walkdir::WalkDir;
 
 #[derive(Error, Debug)]
 enum CipherError {
@@ -23,14 +23,14 @@ enum CipherError {
     #[error("Aes encryption Error")]
     AesError(AesError),
     #[error("Rsa encryption Error")]
-    RsaError(#[from] RsaError)
+    RsaError(#[from] RsaError),
 }
 
-fn decrypt_file(path: &Path , rsa_key : &RsaPrivateKey) -> Result<(), CipherError> {
+fn decrypt_file(path: &Path, rsa_key: &RsaPrivateKey) -> Result<(), CipherError> {
     match File::options().read(true).write(true).open(path) {
         Ok(mut file) => {
             let mut buffer = Vec::<u8>::new();
-            let mut buffer_nonce = [0 ; 16];
+            let mut buffer_nonce = [0; 16];
 
             file.read_exact(&mut buffer_nonce)?;
             file.read_to_end(&mut buffer)?;
@@ -38,13 +38,14 @@ fn decrypt_file(path: &Path , rsa_key : &RsaPrivateKey) -> Result<(), CipherErro
             let final_length = buffer.len().saturating_sub(512);
 
             let encrypted_aes_key_bytes = buffer.split_off(final_length);
-            
+
             let padding = Oaep::new::<Sha256>();
 
             let aes_key = rsa_key.decrypt(padding, &encrypted_aes_key_bytes)?;
 
             let nonce: GenericArray<u8, U16> = Nonce::clone_from_slice(&buffer_nonce);
-            let cipher : Result<Aes256SivAead, InvalidLength> = Aes256SivAead::new_from_slice(&aes_key);
+            let cipher: Result<Aes256SivAead, InvalidLength> =
+                Aes256SivAead::new_from_slice(&aes_key);
 
             if let Err(err) = cipher {
                 return Err(CipherError::InvalidLength(err));
@@ -52,16 +53,16 @@ fn decrypt_file(path: &Path , rsa_key : &RsaPrivateKey) -> Result<(), CipherErro
 
             let cipher = cipher.unwrap();
 
-            let decrypted_file = cipher.decrypt(&nonce , buffer.as_slice());
+            let decrypted_file = cipher.decrypt(&nonce, buffer.as_slice());
 
-            if let Err(error) = decrypted_file{
-                println!("{:?}" , error.to_string());
+            if let Err(error) = decrypted_file {
+                println!("{:?}", error.to_string());
                 return Err(CipherError::AesError(error));
             }
 
             let decrypted_file: Vec<u8> = decrypted_file.unwrap();
 
-            Ok(write(path , decrypted_file)?)
+            Ok(write(path, decrypted_file)?)
         }
         Err(error) => Err(CipherError::IOError(error)),
     }
