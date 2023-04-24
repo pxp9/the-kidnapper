@@ -1,3 +1,4 @@
 /target
 *.pem
 /some_dir_backup
+/windows_payload

